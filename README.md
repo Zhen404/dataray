@@ -15,6 +15,8 @@ get the data structure and some basic metadata of the requested data
 
 ```python
 # here is your customer request function. Now it is supposed to return list or dict you are interested in looking into
+from dataray import dataray
+
 @ dataray.ray()
 def request_func():
     ...
