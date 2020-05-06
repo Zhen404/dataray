@@ -46,7 +46,7 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - deps-v1-{{ .Branch }}-{{ checkout "poetry.lock" }}
+            - deps-v1-{{ .Branch }}-{{ checksum "poetry.lock" }}
             - deps-v1-{{ .Branch }}
             - deps-v1
       - run:
