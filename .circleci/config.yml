@@ -1,0 +1,119 @@
+version: 2.1
+executors:
+  dataray:
+    docker:
+      - image: circleci/python:3.7.4
+    working_directory: ~/repo
+jobs:
+  build:
+    executor: dataray
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - deps-v1-{{ .Branch }}-{{ checksum "poetry.lock" }}
+            - deps-v1-{{ .Branch }}
+            - deps-v1
+      - run:
+          name: Install Dependencies
+          command: |
+            curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python - --version 1.0.3
+            source $HOME/.poetry/env
+            poetry run pip install -U pip
+            poetry install
+      - save_cache:
+          key: deps-v1-{{ .Branch }}-{{ checksum "poetry.lock" }}
+          paths:
+            - /home/circleci/.cache/pypoetry/virtualenvs
+            - /home/circleci/.poetry
+  test:
+    executor: dataray
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - deps-v1-{{ .Branch }}-{{ checksum "poetry.lock" }}
+            - deps-v1-{{ .Branch }}
+            - deps-v1
+      - run:
+          name: Run tests
+          command: |
+            source $HOME/.poetry/env
+            poetry run pytest
+  release:
+    executor: dataray
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - deps-v1-{{ .Branch }}-{{ checkout "poetry.lock" }}
+            - deps-v1-{{ .Branch }}
+            - deps-v1
+      - run:
+          name: Create release
+          command: |
+            source $HOME/.poetry/env
+            poetry build
+            poetry run python -c "import dataray; print(dataray.__version__)" > dist/version.txt
+      - persist_to_workspace:
+          root: .
+          paths:
+            - dist
+  github_publish:
+    docker:
+      - image: circleci/golang:1.11
+    steps:
+      - attach_workspace:
+          at: ./
+      - run:
+          name: Publish release
+          command:
+            go get github.com/tcnksm/ghr
+            VERSION=$(cat dist/version.txt)
+            rm dist/version.txt
+            echo $VERSION
+            ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${VERSION} dist/
+  pypi_publish:
+    executor: dataray
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - deps-v1-{{ .Branch }}-{{ checksum "poetry.lock" }}
+            - deps-v1-{{ .Branch }}
+            - deps-v1
+      - attach_workspace:
+          at: ./
+      - run:
+          name: Upload release to Pypi
+          command: |
+            echo -e "[pypi]" >> ~/.pypirc
+            echo -e "username = $PYPI_USERNAME" >> ~/.pypirc
+            echo -e "password = $PYPI_PASSWORD" >> ~/.pypirc
+            rm dist/version.txt
+            twine upload dist/*
+workflows:
+  version: 2
+  build_and_test:
+    jobs:
+      - build
+      - test:
+          requires:
+            - build
+      - release_approval:
+          type: approval
+          requires:
+            - test
+          filters:
+            branches:
+              only:
+                - master
+      - release:
+          requires:
+            - release_approval
+      - github_publish:
+          requires:
+            - release
+      - pypi_publish:
+          requires:
+            - release
