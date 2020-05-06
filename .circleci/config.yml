@@ -76,17 +76,12 @@ jobs:
   pypi_publish:
     executor: dataray
     steps:
-      - checkout
-      - restore_cache:
-          keys:
-            - deps-v1-{{ .Branch }}-{{ checksum "poetry.lock" }}
-            - deps-v1-{{ .Branch }}
-            - deps-v1
       - attach_workspace:
           at: ./
       - run:
           name: Upload release to Pypi
           command: |
+            pip install twine
             echo -e "[pypi]" >> ~/.pypirc
             echo -e "username = $PYPI_USERNAME" >> ~/.pypirc
             echo -e "password = $PYPI_PASSWORD" >> ~/.pypirc
