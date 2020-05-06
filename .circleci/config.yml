@@ -89,11 +89,12 @@ jobs:
           command: |
             source $HOME/.poetry/env
             poetry add twine
+            poetry install
             echo -e "[pypi]" >> ~/.pypirc
             echo -e "username = $PYPI_USERNAME" >> ~/.pypirc
             echo -e "password = $PYPI_PASSWORD" >> ~/.pypirc
             rm dist/version.txt
-            twine upload dist/*
+            poetry run twine upload dist/*
 workflows:
   version: 2
   build_and_test:
