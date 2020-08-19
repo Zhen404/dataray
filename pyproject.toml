@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "dataray"
-version = "0.1.0"
+version = "0.1.1"
 description = "a class of decorators helping inspect data"
 authors = ["Zhen404 <zl2632@columbia.edu>"]
 # New attributes
