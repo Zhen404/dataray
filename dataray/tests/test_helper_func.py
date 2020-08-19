@@ -3,6 +3,7 @@ import pytest
 from dataray.helper.helper_func import structure_parser
 from dataray.helper.helper_func import structure_printer
 
+
 @pytest.fixture()
 def flatten_dict():
     return {"a": 1, "b": 1, "c": 1}
